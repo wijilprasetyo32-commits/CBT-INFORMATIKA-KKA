@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBT SMART EXAM - SMK Negeri 2 Purwokerto</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        },
+                        accent: {
+                            400: '#facc15',
+                            500: '#eab308',
+                            600: '#ca8a04',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Inter & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <div id="app" class="flex-1 flex flex-col">
+        <!-- Rendered dynamically via JavaScript -->
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
+
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+
+    <script>
+        const DB_KEY = 'cbt_smkn2_pwt_db_v1';
+        
+        const initialDB = {
+            settings: {
+                schoolName: "SMK NEGERI 2 PURWOKERTO",
+                appName: "CBT SMART EXAM",
+                version: "1.0",
+                academicYear: "2025/2026",
+                timezone: "Asia/Jakarta",
+                serverStatus: "Online (Optimal)",
+                activeToken: "TEI2026",
+                logoUrl: "https://placehold.co/150x150/1e3a8a/ffffff?text=SMKN2"
+            },
+            roles: ['Administrator', 'Guru', 'Pengawas', 'Siswa'],
+            users: [
+                { id: 1, username: 'admin', role: 'Administrator', name: 'Super Administrator', email: 'admin@smkn2purwokerto.sch.id', status: 'Aktif' },
+                { id: 2, username: 'guru1', role: 'Guru', name: 'Drs. H. Slamet, M.T.', email: 'slamet@guru.sch.id', status: 'Aktif' },
+                { id: 3, username: 'pengawas1', role: 'Pengawas', name: 'Siti Rahmawati, S.Pd.', email: 'siti@pengawas.sch.id', status: 'Aktif' },
+                { id: 4, username: 'siswa1', role: 'Siswa', name: 'Ahmad Fauzi', email: 'ahmad@siswa.sch.id', class: 'XI TE 1', nis: '20261001', status: 'Aktif' },
+                { id: 5, username: 'siswa2', role: 'Siswa', name: 'Dewi Lestari', email: 'dewi@siswa.sch.id', class: 'XI TE 2', nis: '20261002', status: 'Aktif' },
+                { id: 6, username: 'siswa3', role: 'Siswa', name: 'Bagas Pratama', email: 'bagas@siswa.sch.id', class: 'XII TKJ 1', nis: '20261003', status: 'Aktif' }
+            ],
+            departments: [
+                { id: 1, code: 'TEI', name: 'Teknik Elektronika Industri' },
+                { id: 2, code: 'TAV', name: 'Teknik Audio Video' },
+                { id: 3, code: 'TKJ', name: 'Teknik Komputer dan Jaringan' },
+                { id: 4, code: 'TSM', name: 'Teknik Otomotif' },
+                { id: 5, code: 'TP', name: 'Teknik Mesin' }
+            ],
+            classes: [
+                { id: 1, name: 'X TE 1', department: 'Teknik Elektronika Industri' },
+                { id: 2, name: 'X TE 2', department: 'Teknik Elektronika Industri' },
+                { id: 3, name: 'XI TE 1', department: 'Teknik Elektronika Industri' },
+                { id: 4, name: 'XI TE 2', department: 'Teknik Elektronika Industri' },
+                { id: 5, name: 'XII TKJ 1', department: 'Teknik Komputer dan Jaringan' }
+            ],
+            subjects: [
+                { id: 1, code: 'INF', name: 'Informatika', teacher: 'Drs. H. Slamet, M.T.' },
+                { id: 2, code: 'KOD', name: 'Koding & Kecerdasan Artifisial', teacher: 'Drs. H. Slamet, M.T.' },
+                { id: 3, code: 'MTK', name: 'Matematika', teacher: 'Budi Santoso, S.Pd.' },
+                { id: 4, code: 'BIN', name: 'Bahasa Indonesia', teacher: 'Ani Wulandari, S.Pd.' },
+                { id: 5, code: 'PROD', name: 'Mikrokontroler & IoT (Produktif)', teacher: 'Drs. H. Slamet, M.T.' }
+            ],
+            questions: [
+                { id: 1, subject: 'Informatika', class: 'XI TE 1', difficulty: 'Sedang', question: 'Manakah protokol yang digunakan untuk komunikasi aman terenkripsi di web?', options: { A: 'HTTP', B: 'FTP', C: 'HTTPS', D: 'SMTP', E: 'TELNET' }, key: 'C', weight: 5, discussion: 'HTTPS (Hypertext Transfer Protocol Secure) menggunakan SSL/TLS untuk enkripsi data.' },
+                { id: 2, subject: 'Koding & Kecerdasan Artifisial', class: 'XI TE 1', difficulty: 'Sulit', question: 'Library Python manakah yang paling populer untuk pembuatan model Deep Learning?', options: { A: 'Pandas', B: 'NumPy', C: 'TensorFlow', D: 'Matplotlib', E: 'Requests' }, key: 'C', weight: 5, discussion: 'TensorFlow dan PyTorch merupakan framework utama untuk implementasi Neural Networks.' },
+                { id: 3, subject: 'Matematika', class: 'XI TE 1', difficulty: 'Mudah', question: 'Berapakah hasil dari kalkulasi 12 x 12 - 44?', options: { A: '100', B: '144', C: '120', D: '96', E: '104' }, key: 'A', weight: 5, discussion: '12 x 12 = 144. Kemudian 144 - 44 = 100.' }
+            ],
+            exams: [
+                { id: 1, title: 'Ujian Tengah Semester Gasal - Informatika', subject: 'Informatika', class: 'XI TE 1', date: '2026-10-15', startTime: '08:00', endTime: '10:00', duration: 120, totalQuestions: 3, passingGrade: 75, tokenRequired: true, token: 'TEI2026', status: 'Aktif' },
+                { id: 2, title: 'Simulasi Koding dan AI Dasar', subject: 'Koding & Kecerdasan Artifisial', class: 'XI TE 1', date: '2026-10-16', startTime: '09:00', endTime: '11:00', duration: 90, totalQuestions: 2, passingGrade: 70, tokenRequired: true, token: 'AI2026', status: 'Terjadwal' }
+            ],
+            examParticipants: [
+                { id: 1, examId: 1, nis: '20261001', name: 'Ahmad Fauzi', class: 'XI TE 1', subject: 'Informatika', startTime: '08:02', remainingTime: 7100, answered: 3, unanswered: 0, status: 'Sedang Ujian', tabSwitches: 0, score: null },
+                { id: 2, examId: 1, nis: '20261002', name: 'Dewi Lestari', class: 'XI TE 2', subject: 'Informatika', startTime: '08:05', remainingTime: 0, answered: 3, unanswered: 0, status: 'Selesai Ujian', tabSwitches: 1, score: 100 },
+                { id: 3, examId: 1, nis: '20261003', name: 'Bagas Pratama', class: 'XII TKJ 1', subject: 'Informatika', startTime: '08:10', remainingTime: 3600, answered: 2, unanswered: 1, status: 'Sedang Ujian', tabSwitches: 2, score: null }
+            ],
+            activityLogs: [
+                { id: 1, user: 'admin', activity: 'Melakukan autentikasi masuk sistem', ip: '192.168.1.10', time: '07:30:00' },
+                { id: 2, user: 'guru1', activity: 'Membuat paket ujian Informatika', ip: '192.168.1.15', time: '07:45:12' },
+                { id: 3, user: 'siswa1', activity: 'Memasukkan token valid TEI2026', ip: '192.168.1.50', time: '08:01:20' },
+                { id: 4, user: 'pengawas1', activity: 'Mengirim notifikasi peringatan pindah tab', ip: '192.168.1.2', time: '08:15:40' }
+            ]
+        };
+
+        function getDB() {
+            const data = localStorage.getItem(DB_KEY);
+            if (!data) {
+                localStorage.setItem(DB_KEY, JSON.stringify(initialDB));
+                return initialDB;
+            }
+            return JSON.parse(data);
+        }
+
+        function saveDB(db) {
+            localStorage.setItem(DB_KEY, JSON.stringify(db));
+        }
+
+        let appState = {
+            currentUser: null,
+            currentView: 'login',
+            activeExamId: null,
+            darkMode: false,
+            sidebarOpen: true
+        };
+
+        function render() {
+            const container = document.getElementById('app');
+            container.className = `flex-1 flex flex-col ${appState.darkMode ? 'dark bg-slate-900 text-slate-100' : 'bg-slate-50 text-slate-800'}`;
+            
+            if (!appState.currentUser) {
+                container.innerHTML = renderLoginScreen();
+                return;
+            }
+
+            if (appState.currentView === 'exam_room') {
+                container.innerHTML = renderExamRoomScreen();
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="flex h-screen overflow-hidden">
+                    <!-- Sidebar -->
+                    <aside id="sidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 z-30 ${appState.sidebarOpen ? 'translate-x-0' : '-translate-x-64 md:translate-x-0 md:w-20'}">
+                        <div class="h-16 flex items-center justify-between px-4 bg-brand-900 border-b border-slate-800">
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <i class="fa-solid fa-graduation-cap text-accent-500 text-2xl shrink-0"></i>
+                                <span class="font-bold text-white tracking-wide truncate md:${appState.sidebarOpen ? 'inline' : 'hidden'}">CBT SMKN 2</span>
+                            </div>
+                            <button onclick="toggleSidebar()" class="text-slate-400 hover:text-white md:hidden">
+                                <i class="fa-solid fa-xmark text-lg"></i>
+                            </button>
+                        </div>
+                        <div class="p-4 border-b border-slate-800 flex items-center gap-3 bg-slate-950/50">
+                            <div class="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center text-white font-bold shrink-0 shadow-md">
+                                ${appState.currentUser.name.charAt(0)}
+                            </div>
+                            <div class="overflow-hidden md:${appState.sidebarOpen ? 'block' : 'hidden'}">
+                                <p class="text-sm font-semibold text-white truncate">${appState.currentUser.name}</p>
+                                <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-brand-500/20 text-brand-400 rounded-full font-bold">${appState.currentUser.role}</span>
+                            </div>
+                        </div>
+                        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
+                            ${renderSidebarNavigation()}
+                        </nav>
+                        <div class="p-4 border-t border-slate-800">
+                            <button onclick="logout()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-400 hover:bg-rose-500/10 transition-colors font-medium text-sm">
+                                <i class="fa-solid fa-right-from-bracket shrink-0"></i>
+                                <span class="md:${appState.sidebarOpen ? 'inline' : 'hidden'}">Keluar Sistem</span>
+                            </button>
+                        </div>
+                    </aside>
+
+                    <!-- Main Content Area -->
+                    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+                        <!-- Header Navbar -->
+                        <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 z-20 shadow-sm">
+                            <div class="flex items-center gap-4">
+                                <button onclick="toggleSidebar()" class="text-slate-600 dark:text-slate-300 hover:text-brand-600 focus:outline-none">
+                                    <i class="fa-solid fa-bars text-xl"></i>
+                                </button>
+                                <div>
+                                    <h1 class="text-base md:text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight">SMK NEGERI 2 PURWOKERTO</h1>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">CBT Smart Exam v1.0 • Zona Waktu: WIB (Asia/Jakarta)</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition">
+                                    <i class="fa-solid ${appState.darkMode ? 'fa-sun text-amber-400' : 'fa-moon'}"></i>
+                                </button>
+                                <div class="flex items-center gap-2 pl-4 border-l border-slate-200 dark:border-slate-700">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 hidden md:inline">Server Live Sync</span>
+                                </div>
+                            </div>
+                        </header>
+
+                        <!-- Content Area -->
+                        <main id="main-content" class="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar bg-slate-50 dark:bg-slate-900">
+                            ${renderMainContentByRole()}
+                        </main>
+                    </div>
+                </div>
+            `;
+            bindDashboardEvents();
+        }
+
+        function renderLoginScreen() {
+            return `
+                <div class="flex-1 flex items-center justify-center bg-gradient-to-br from-brand-900 via-brand-700 to-slate-900 p-4">
+                    <div class="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
+                        <div class="p-8 text-center bg-brand-600 text-white relative">
+                            <div class="w-20 h-20 mx-auto mb-3 rounded-2xl bg-white flex items-center justify-center shadow-lg border-4 border-accent-500">
+                                <i class="fa-solid fa-graduation-cap text-3xl text-brand-900"></i>
+                            </div>
+                            <h2 class="text-2xl font-black tracking-tight">CBT SMART EXAM</h2>
+                            <p class="text-xs text-brand-100 uppercase tracking-widest font-semibold mt-1">SMK Negeri 2 Purwokerto</p>
+                        </div>
+                        <div class="p-8">
+                            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">Username / NIS</label>
+                                    <div class="relative">
+                                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                                            <i class="fa-solid fa-user text-sm"></i>
+                                        </span>
+                                        <input type="text" id="login-username" required placeholder="Contoh: admin, guru1, siswa1" 
+                                            class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm font-medium">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">Password</label>
+                                    <div class="relative">
+                                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                                            <i class="fa-solid fa-lock text-sm"></i>
+                                        </span>
+                                        <input type="password" id="login-password" required placeholder="••••••••" 
+                                            class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm font-medium">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">Role / Peran Akses</label>
+                                    <select id="login-role" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm font-medium">
+                                        <option value="Administrator">Administrator</option>
+                                        <option value="Guru">Guru Pengampu</option>
+                                        <option value="Pengawas">Pengawas Ujian</option>
+                                        <option value="Siswa" selected>Siswa Peserta</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 transition flex items-center justify-center gap-2 text-sm">
+                                    <i class="fa-solid fa-right-to-bracket"></i> Masuk Sistem Ujian
+                                </button>
+                            </form>
+                            <div class="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700/60 text-center">
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Akun demo: <span class="font-mono text-brand-600 font-bold">admin</span>, <span class="font-mono text-brand-600 font-bold">guru1</span>, <span class="font-mono text-brand-600 font-bold">pengawas1</span>, <span class="font-mono text-brand-600 font-bold">siswa1</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value.trim();
+            const role = document.getElementById('login-role').value;
+            const db = getDB();
+
+            let user = db.users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.role === role);
+            if (!user) {
+                user = { id: Date.now(), username, role, name: username.toUpperCase(), email: `${username}@smkn2purwokerto.sch.id`, status: 'Aktif' };
+                db.users.push(user);
+                saveDB(db);
+            }
+
+            appState.currentUser = user;
+            appState.currentView = role.toLowerCase() === 'administrator' ? 'admin' :
+                                   role.toLowerCase() === 'guru' ? 'guru' :
+                                   role.toLowerCase() === 'pengawas' ? 'pengawas' : 'siswa';
+            
+            showToast(`Selamat datang ${user.name} (${role})`, 'success');
+            render();
+        }
+
+        function logout() {
+            appState.currentUser = null;
+            appState.currentView = 'login';
+            showToast('Anda telah keluar dari sistem.', 'info');
+            render();
+        }
+
+        function renderSidebarNavigation() {
+            const role = appState.currentUser.role;
+            let items = [];
+
+            if (role === 'Administrator') {
+                items = [
+                    { id: 'admin', label: 'Dashboard Overview', icon: 'fa-chart-pie' },
+                    { id: 'students', label: 'Data Siswa', icon: 'fa-user-graduate' },
+                    { id: 'teachers', label: 'Data Guru', icon: 'fa-chalkboard-user' },
+                    { id: 'classes', label: 'Kelas & Jurusan', icon: 'fa-school' },
+                    { id: 'subjects', label: 'Mata Pelajaran', icon: 'fa-book' },
+                    { id: 'exams_admin', label: 'Jadwal & Ujian', icon: 'fa-calendar-days' },
+                    { id: 'tokens', label: 'Token Ujian', icon: 'fa-key' },
+                    { id: 'monitoring_admin', label: 'Monitoring Realtime', icon: 'fa-desktop' },
+                    { id: 'results_admin', label: 'Hasil & Rekap Nilai', icon: 'fa-square-poll-vertical' },
+                    { id: 'reports', label: 'Laporan & Ekspor', icon: 'fa-file-arrow-down' },
+                    { id: 'backup', label: 'Backup & Restore', icon: 'fa-database' }
+                ];
+            } else if (role === 'Guru') {
+                items = [
+                    { id: 'guru', label: 'Dashboard Guru', icon: 'fa-house' },
+                    { id: 'question_bank', label: 'Bank Soal', icon: 'fa-file-lines' },
+                    { id: 'exam_maker', label: 'Buat Paket Ujian', icon: 'fa-file-circle-plus' },
+                    { id: 'exam_results_teacher', label: 'Analisis Hasil Nilai', icon: 'fa-chart-column' },
+                    { id: 'reports_teacher', label: 'Cetak Laporan', icon: 'fa-print' }
+                ];
+            } else if (role === 'Pengawas') {
+                items = [
+                    { id: 'pengawas', label: 'Dashboard Pengawas', icon: 'fa-shield-halved' },
+                    { id: 'live_monitor', label: 'Monitoring Peserta', icon: 'fa-eye' },
+                    { id: 'violation_logs', label: 'Log Pelanggaran', icon: 'fa-triangle-exclamation' }
+                ];
+            } else if (role === 'Siswa') {
+                items = [
+                    { id: 'siswa', label: 'Dashboard Siswa', icon: 'fa-house' },
+                    { id: 'active_exams', label: 'Daftar Ujian Aktif', icon: 'fa-laptop-code' },
+                    { id: 'exam_history', label: 'Riwayat & Nilai', icon: 'fa-clock-rotate-left' }
+                ];
+            }
+
+            return items.map(item => `
+                <button onclick="switchTab('${item.id}')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all ${appState.currentView === item.id ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}">
+                    <i class="fa-solid ${item.icon} w-5 shrink-0 text-center"></i>
+                    <span class="md:${appState.sidebarOpen ? 'inline' : 'hidden'} truncate">${item.label}</span>
+                </button>
+            `).join('');
+        }
+
+        function switchTab(viewId) {
+            appState.currentView = viewId;
+            render();
+        }
+
+        function renderMainContentByRole() {
+            const role = appState.currentUser.role;
+            const view = appState.currentView;
+
+            if (role === 'Administrator') {
+                if (view === 'admin') return renderAdminDashboard();
+                if (view === 'students') return renderStudentsManagement();
+                if (view === 'teachers') return renderTeachersManagement();
+                if (view === 'classes') return renderClassesManagement();
+                if (view === 'subjects') return renderSubjectsManagement();
+                if (view === 'exams_admin') return renderExamsAdmin();
+                if (view === 'tokens') return renderTokensManagement();
+                if (view === 'monitoring_admin') return renderMonitoringAdmin();
+                if (view === 'results_admin') return renderResultsAdmin();
+                if (view === 'reports') return renderReportsAdmin();
+                if (view === 'backup') return renderBackupRestore();
+            } else if (role === 'Guru') {
+                if (view === 'guru') return renderGuruDashboard();
+                if (view === 'question_bank') return renderQuestionBank();
+                if (view === 'exam_maker') return renderExamMaker();
+                if (view === 'exam_results_teacher') return renderExamResultsTeacher();
+                if (view === 'reports_teacher') return renderReportsTeacher();
+            } else if (role === 'Pengawas') {
+                if (view === 'pengawas' || view === 'live_monitor') return renderPengawasDashboard();
+                if (view === 'violation_logs') return renderViolationLogs();
+            } else if (role === 'Siswa') {
+                if (view === 'siswa' || view === 'active_exams') return renderSiswaDashboard();
+                if (view === 'exam_history') return renderSiswaHistory();
+            }
+
+            return `<div class="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700"><h2 class="text-xl font-bold">Modul ${view}</h2><p class="text-slate-500 mt-2">Fitur terintegrasi dengan server SMK Negeri 2 Purwokerto.</p></div>`;
+        }
+
+        function renderAdminDashboard() {
+            const db = getDB();
+            return `
+                <div class="space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-brand-800 via-brand-700 to-brand-900 p-6 rounded-2xl text-white shadow-xl">
+                        <div>
+                            <h2 class="text-2xl font-bold">Dashboard Administrator CBT</h2>
+                            <p class="text-brand-100 text-xs md:text-sm mt-1">Sistem Ujian Online SMK Negeri 2 Purwokerto • Versi 1.0</p>
+                        </div>
+                        <div class="flex items-center gap-3 bg-white/10 px-4 py-2.5 rounded-xl backdrop-blur border border-white/10">
+                            <i class="fa-solid fa-key text-accent-400 text-xl"></i>
+                            <div>
+                                <p class="text-[10px] uppercase tracking-wider text-brand-200 font-semibold">Token Aktif Saat Ini</p>
+                                <p class="font-mono font-black text-accent-400 text-xl">${db.settings.activeToken}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Siswa</p>
+                                <h3 class="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">${db.users.filter(u => u.role === 'Siswa').length + 300}</h3>
+                                <span class="text-xs text-emerald-500 font-semibold mt-1 inline-block"><i class="fa-solid fa-check-circle"></i> Terdaftar Aktif</span>
+                            </div>
+                            <div class="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-900/40 text-brand-600 flex items-center justify-center text-2xl shadow-inner">
+                                <i class="fa-solid fa-user-graduate"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Guru</p>
+                                <h3 class="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">${db.users.filter(u => u.role === 'Guru').length + 25}</h3>
+                                <span class="text-xs text-brand-500 font-semibold mt-1 inline-block"><i class="fa-solid fa-chalkboard"></i> Pengampu Mapel</span>
+                            </div>
+                            <div class="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-900/40 text-amber-600 flex items-center justify-center text-2xl shadow-inner">
+                                <i class="fa-solid fa-chalkboard-user"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ujian Aktif</p>
+                                <h3 class="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">${db.exams.filter(e => e.status === 'Aktif').length}</h3>
+                                <span class="text-xs text-emerald-500 font-semibold mt-1 inline-block"><i class="fa-solid fa-play-circle"></i> Sedang Berjalan</span>
+                            </div>
+                            <div class="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center text-2xl shadow-inner">
+                                <i class="fa-solid fa-laptop-code"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Sedang Ujian</p>
+                                <h3 class="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">142</h3>
+                                <span class="text-xs text-indigo-500 font-semibold mt-1 inline-block"><i class="fa-solid fa-sync fa-spin"></i> Live Session</span>
+                            </div>
+                            <div class="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 flex items-center justify-center text-2xl shadow-inner">
+                                <i class="fa-solid fa-users-viewfinder"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts & Activities -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4">Grafik Perolehan Rata-Rata Nilai per Kelas</h3>
+                            <div class="h-72 flex items-center justify-center bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                                <canvas id="adminChart" class="max-h-64 w-full"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4">Log Aktivitas Server</h3>
+                            <div class="space-y-3 overflow-y-auto max-h-72 custom-scrollbar pr-1 flex-1">
+                                ${db.activityLogs.map(log => `
+                                    <div class="flex items-start gap-3 pb-3 border-b border-slate-100 dark:border-slate-700/50 text-xs">
+                                        <div class="w-7 h-7 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600 flex items-center justify-center shrink-0 mt-0.5">
+                                            <i class="fa-solid fa-bolt"></i>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="font-bold text-slate-900 dark:text-white truncate">${log.user}</p>
+                                            <p class="text-slate-500 dark:text-slate-400 leading-tight">${log.activity}</p>
+                                            <span class="text-[10px] text-slate-400 font-mono mt-0.5 block">${log.time} • IP: ${log.ip}</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        let studentSearchQuery = '';
+        let studentClassFilter = '';
+
+        function renderStudentsManagement() {
+            const db = getDB();
+            let students = db.users.filter(u => u.role === 'Siswa');
+
+            if (studentSearchQuery) {
+                const q = studentSearchQuery.toLowerCase();
+                students = students.filter(s => s.name.toLowerCase().includes(q) || (s.nis && s.nis.includes(q)));
+            }
+            if (studentClassFilter) {
+                students = students.filter(s => s.class === studentClassFilter);
+            }
+
+            return `
+                <div class="space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Manajemen Data Siswa</h2>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Kelola data peserta ujian SMK Negeri 2 Purwokerto.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button onclick="openAddStudentModal()" class="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl shadow-md transition flex items-center gap-2 text-sm">
+                                <i class="fa-solid fa-user-plus"></i> Tambah Siswa
+                            </button>
+                            <button onclick="importExcelStudents()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-md transition flex items-center gap-2 text-sm">
+                                <i class="fa-solid fa-file-excel"></i> Impor Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                        <div class="relative w-full sm:w-80">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400"><i class="fa-solid fa-magnifying-glass text-sm"></i></span>
+                            <input type="text" id="student-search" oninput="handleStudentSearch(event)" placeholder="Cari nama atau NIS siswa..." value="${studentSearchQuery}"
+                                class="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        </div>
+                        <div class="flex items-center gap-3 w-full sm:w-auto">
+                            <select id="student-class-filter" onchange="handleStudentClassFilter(event)" class="w-full sm:w-auto px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                                <option value="">Semua Kelas</option>
+                                ${db.classes.map(c => `<option value="${c.name}" ${studentClassFilter === c.name ? 'selected' : ''}>${c.name}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Students Table -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider font-bold">
+                                        <th class="p-4">NIS / User</th>
+                                        <th class="p-4">Nama Lengkap</th>
+                                        <th class="p-4">Kelas</th>
+                                        <th class="p-4">Email</th>
+                                        <th class="p-4">Status</th>
+                                        <th class="p-4 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+                                    ${students.length > 0 ? students.map(s => `
+                                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+                                            <td class="p-4 font-mono font-bold text-brand-600">${s.nis || '202610' + s.id}</td>
+                                            <td class="p-4 font-semibold text-slate-900 dark:text-white">${s.name}</td>
+                                            <td class="p-4"><span class="px-2.5 py-1 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 rounded-lg text-xs font-bold">${s.class || 'XI TE 1'}</span></td>
+                                            <td class="p-4 text-slate-500 text-xs">${s.email}</td>
+                                            <td class="p-4"><span class="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 rounded-full text-xs font-bold">${s.status}</span></td>
+                                            <td class="p-4 text-center space-x-2">
+                                                <button onclick="editStudent(${s.id})" class="p-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-lg transition" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                                                <button onclick="deleteStudent(${s.id})" class="p-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 text-rose-600 rounded-lg transition" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                    `).join('') : `
+                                        <tr><td colspan="6" class="p-8 text-center text-slate-400">Tidak ada data siswa ditemukan.</td></tr>
+                                    `}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleStudentSearch(e) {
+            studentSearchQuery = e.target.value;
+            render();
+        }
+
+        function handleStudentClassFilter(e) {
+            studentClassFilter = e.target.value;
+            render();
+        }
+
+        function openAddStudentModal() {
+            showModal('Tambah Data Siswa Baru', `
+                <form onsubmit="saveNewStudent(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">NIS Siswa</label>
+                        <input type="text" id="new-nis" required class="w-full px-4 py-2.5 rounded-xl border dark:bg-slate-900 dark:border-slate-700 text-sm focus:ring-2 focus:ring-brand-500" placeholder="Contoh: 20261055">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Nama Lengkap</label>
+                        <input type="text" id="new-name" required class="w-full px-4 py-2.5 rounded-xl border dark:bg-slate-900 dark:border-slate-700 text-sm focus:ring-2 focus:ring-brand-500" placeholder="Nama lengkap siswa...">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Kelas</label>
+                        <select id="new-class" class="w-full px-4 py-2.5 rounded-xl border dark:bg-slate-900 dark:border-slate-700 text-sm focus:ring-2 focus:ring-brand-500">
+                            <option value="X TE 1">X TE 1</option>
+                            <option value="XI TE 1">XI TE 1</option>
+                            <option value="XI TE 2">XI TE 2</option>
+                            <option value="XII TKJ 1">XII TKJ 1</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition text-sm">Simpan Data Siswa</button>
+                </form>
+            `);
+        }
+
+        function saveNewStudent(e) {
+            e.preventDefault();
+            const nis = document.getElementById('new-nis').value;
+            const name = document.getElementById('new-name').value;
+            const studentClass = document.getElementById('new-class').value;
+            
+            const db = getDB();
+            db.users.push({ id: Date.now(), username: nis, role: 'Siswa', name, email: `${nis}@siswa.sch.id`, class: studentClass, nis, status: 'Aktif' });
+            saveDB(db);
+            closeModal();
+            showToast('Siswa baru berhasil ditambahkan!', 'success');
+            render();
+        }
+
+        function deleteStudent(id) {
+            if (!confirm('Apakah Anda yakin ingin menghapus data siswa ini?')) return;
+            const db = getDB();
+            db.users = db.users.filter(u => u.id !== id);
+            saveDB(db);
+            showToast('Data siswa berhasil dihapus.', 'info');
+            render();
+        }
+
+        function editStudent(id) {
+            const db = getDB();
+            const student = db.users.find(u => u.id === id);
+            if (!student) return;
+
+            showModal('Edit Data Siswa', `
+                <form onsubmit="saveEditedStudent(event, ${id})" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">NIS Siswa</label>
+                        <input type="text" id="edit-nis" value="${student.nis || ''}" required class="w-full px-4 py-2.5 rounded-xl border dark:bg-slate-900 dark:border-slate-700 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Nama Lengkap</label>
+                        <input type="text" id="edit-name" value="${student.name}" required class="w-full px-4 py-2.5 rounded-xl border dark:bg-slate-900 dark:border-slate-700 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Kelas</label>
+                        <select id="edit-class" class="w-full px-4 py-2.5 rounded-xl border dark:bg-slate-900 dark:border-slate-700 text-sm">
+                            <option value="X TE 1" ${student.class === 'X TE 1' ? 'selected' : ''}>X TE 1</option>
+                            <option value="XI TE 1" ${student.class === 'XI TE 1' ? 'selected' : ''}>XI TE 1</option>
+                            <option value="XI TE 2" ${student.class === 'XI TE 2' ? 'selected' : ''}>XI TE 2</option>
+                            <option value="XII TKJ 1" ${student.class === 'XII TKJ 1' ? 'selected' : ''}>XII TKJ 1</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition text-sm">Update Data Siswa</button>
+                </form>
+            `);
+        }
+
+        function saveEditedStudent(e, id) {
+            e.preventDefault();
+            const nis = document.getElementById('edit-nis').value;
+            const name = document.getElementById('edit-name').value;
+            const studentClass = document.getElementById('edit-class').value;
+
+            const db = getDB();
+            const idx = db.users.findIndex(u => u.id === id);
+            if (idx !== -1) {
+                db.users[idx].nis = nis;
+                db.users[idx].username = nis;
+                db.users[idx].name = name;
+                db.users[idx].class = studentClass;
+                saveDB(db);
+                closeModal();
+                showToast('Data siswa berhasil diperbarui!', 'success');
+                render();
+            }
+        }
+
+        function importExcelStudents() {
+            showToast('Proses impor selesai: 30 data siswa diperbarui dari file Excel.', 'success');
+        }
+
+        function renderTeachersManagement() {
+            const db = getDB();
+            const teachers = db.users.filter(u => u.role === 'Guru');
+            return `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Manajemen Data Guru Pengampu</h2>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Daftar tenaga pendidik pembuat paket ujian.</p>
+                        </div>
+                        <button onclick="showToast('Form guru baru dibuka', 'info')" class="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl text-sm shadow"><i class="fa-solid fa-plus mr-1"></i> Tambah Guru</button>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-100 dark:bg-slate-700/50 text-xs uppercase font-bold text-slate-600 dark:text-slate-300">
+                                <tr>
+                                    <th class="p-4">Username</th>
+                                    <th class="p-4">Nama Guru</th>
+                                    <th class="p-4">Email Dinas</th>
+                                    <th class="p-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+                                ${teachers.map(t => `
+                                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                                        <td class="p-4 font-mono font-bold text-brand-600">${t.username}</td>
+                                        <td class="p-4 font-semibold text-slate-900 dark:text-white">${t.name}</td>
+                                        <td class="p-4 text-slate-500 text-xs">${t.email}</td>
+                                        <td class="p-4"><span class="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 rounded-full text-xs font-bold">${t.status}</span></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderClassesManagement() {
+            const db = getDB();
+            return `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Kelas & Jurusan</h2>
+                            <p class="text-sm text-slate-500 mt-1">Struktur keahlian SMK Negeri 2 Purwokerto.</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                            <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Daftar Jurusan Keahlian</h3>
+                            <ul class="space-y-2">
+                                ${db.departments.map(d => `<li class="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl flex justify-between items-center"><span class="font-semibold text-sm">${d.name}</span><span class="font-mono text-xs px-2 py-1 bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300 font-bold rounded">${d.code}</span></li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                            <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Daftar Rombongan Belajar (Kelas)</h3>
+                            <ul class="space-y-2">
+                                ${db.classes.map(c => `<li class="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl flex justify-between items-center"><span class="font-semibold text-sm">${c.name}</span><span class="text-xs text-slate-500">${c.department}</span></li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSubjectsManagement() {
+            const db = getDB();
+            return `
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Mata Pelajaran Ujian</h2>
+                        <p class="text-sm text-slate-500 mt-1">Pengaturan kurikulum pelajaran umum dan kejuruan.</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-100 dark:bg-slate-700/50 text-xs uppercase font-bold text-slate-600 dark:text-slate-300">
+                                <tr>
+                                    <th class="p-4">Kode Mapel</th>
+                                    <th class="p-4">Nama Mata Pelajaran</th>
+                                    <th class="p-4">Guru Pengampu</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+                                ${db.subjects.map(s => `
+                                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                                        <td class="p-4 font-mono font-bold text-brand-600">${s.code}</td>
+                                        <td class="p-4 font-semibold text-slate-900 dark:text-white">${s.name}</td>
+                                        <td class="p-4 text-slate-500">${s.teacher}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderExamsAdmin() {
+            const db = getDB();
+            return `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Jadwal & Paket Ujian CBT</h2>
+                            <p class="text-sm text-slate-500 mt-1">Atur jadwal pelaksanaan dan parameter ujian.</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        ${db.exams.map(e => `
+                            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                <div>
+                                    <span class="px-2.5 py-1 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 font-bold text-xs rounded-lg">${e.subject}</span>
+                                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mt-1">${e.title}</h3>
+                                    <p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-calendar mr-1"></i> ${e.date} (${e.startTime} - ${e.endTime}) • Kelas: ${e.class} • Durasi: ${e.duration} Menit</p>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 font-bold rounded-full text-xs">${e.status}</span>
+                                    <span class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold rounded-xl text-sm">Token: ${e.token}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTokensManagement() {
+            const db = getDB();
+            return `
+                <div class="space-y-6">
+                    <div class="bg-gradient-to-r from-brand-800 to-brand-900 p-6 rounded-2xl text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold">Sistem Token Ujian Dinamis</h2>
+                            <p class="text-brand-100 text-sm mt-1">Kode token wajib dimasukkan siswa sebelum membuka lembar ujian.</p>
+                        </div>
+                        <button onclick="generateNewToken()" class="px-5 py-3 bg-accent-500 hover:bg-accent-600 text-slate-950 font-extrabold rounded-xl shadow-lg transition">Generate Token Baru</button>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 text-center py-12">
+                        <p class="text-slate-500 dark:text-slate-400 mb-2 uppercase text-xs tracking-widest font-bold">Token Aktif Server</p>
+                        <h1 class="text-6xl font-black font-mono text-brand-600 dark:text-brand-400 tracking-wider my-4">${db.settings.activeToken}</h1>
+                        <p class="text-sm text-slate-400">Berlaku untuk seluruh ujian aktif sesi hari ini di SMK Negeri 2 Purwokerto.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateNewToken() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let token = '';
+            for (let i = 0; i < 6; i++) token += chars.charAt(Math.floor(Math.random() * chars.length));
+            const db = getDB();
+            db.settings.activeToken = token;
+            saveDB(db);
+            showToast(`Token baru berhasil digenerate: ${token}`, 'success');
+            render();
+        }
+
+        function renderMonitoringAdmin() {
+            const db = getDB();
+            return `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Monitoring Real-Time Ujian</h2>
+                            <p class="text-sm text-slate-500 mt-1">Pantau status pengerjaan seluruh peserta secara langsung.</p>
+                        </div>
+                        <span class="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 font-bold rounded-full text-xs animate-pulse">Live Sync Active</span>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-100 dark:bg-slate-700/50 text-xs uppercase font-bold text-slate-600 dark:text-slate-300">
+                                <tr>
+                                    <th class="p-4">NIS</th>
+                                    <th class="p-4">Nama Peserta</th>
+                                    <th class="p-4">Kelas</th>
+                                    <th class="p-4">Mapel</th>
+                                    <th class="p-4">Status</th>
+                                    <th class="p-4">Terjawab</th>
+                                    <th class="p-4 text-center">Aksi Server</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+                                ${db.examParticipants.map(p => `
+                                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                                        <td class="p-4 font-mono font-bold text-brand-600">${p.nis}</td>
+                                        <td class="p-4 font-semibold text-slate-900 dark:text-white">${p.name}</td>
+                                        <td class="p-4">${p.class}</td>
+                                        <td class="p-4">${p.subject}</td>
+                                        <td class="p-4"><span class="px-2.5 py-1 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 rounded-full text-xs font-bold">${p.status}</span></td>
+                                        <td class="p-4 font-mono font-bold">${p.answered} / 3</td>
+                                        <td class="p-4 text-center">
+                                            <button onclick="showToast('Akses login ulang diizinkan untuk ${p.name}', 'success')" class="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-300 font-bold rounded-xl text-xs">Reset Login</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderResultsAdmin() {
+            return `
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Hasil & Rekapitulasi Nilai Ujian</h2>
+                        <p class="text-sm text-slate-500 mt-1">Nilai terhitung otomatis berdasarkan bobot jawaban benar.</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 text-center py-12">
+                        <i class="fa-solid fa-trophy text-accent-500 text-5xl mb-4"></i>
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white">Rata-rata Nilai Sekolah: 86.4</h3>
+                        <p class="text-sm text-slate-500 mt-1">94% Siswa tuntas KKM (>75) pada pelaksanaan ujian CBT.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderReportsAdmin() {
+            return `
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Pusat Laporan & Ekspor Dokumen</h2>
+                            <p class="text-sm text-slate-500 mt-1">Unduh rekapitulasi nilai resmi berlogo SMK Negeri 2 Purwokerto.</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="showToast('Rekap nilai format Excel berhasil diunduh.', 'success')" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow"><i class="fa-solid fa-file-excel mr-1"></i> Ekspor Excel</button>
+                            <button onclick="showToast('Dokumen PDF resmi berhasil dicetak.', 'success')" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-sm shadow"><i class="fa-solid fa-file-pdf mr-1"></i> Cetak PDF A4</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderBackupRestore() {
+            return `
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Backup & Restore Database</h2>
+                        <p class="text-sm text-slate-500 mt-1">Cadangkan dan pulihkan data sistem CBT secara berkala.</p>
+                        <div class="flex flex-wrap gap-4 mt-6">
+                            <button onclick="downloadBackupJSON()" class="px-5 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm shadow"><i class="fa-solid fa-download mr-2"></i> Download Backup Data (.json)</button>
+                            <button onclick="showToast('Database dipulihkan dari data cadangan.', 'success')" class="px-5 py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-bold rounded-xl text-sm shadow"><i class="fa-solid fa-upload mr-2"></i> Restore Database</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function downloadBackupJSON() {
+            const db = getDB();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `backup_cbt_smkn2_${new Date().toISOString().slice(0,10)}.json`);
+            dlAnchorElem.click();
+            showToast('File cadangan database berhasil diunduh.', 'success');
+        }
+
+        function renderGuruDashboard() {
+            const db = getDB();
+            return `
+                <div class="space-y-6">
+                    <div class="bg-gradient-to-r from-brand-800 to-brand-900 p-6 rounded-2xl text-white shadow-xl">
+                        <h2 class="text-2xl font-bold">Dashboard Guru Pengampu</h2>
+                        <p class="text-brand-100 text-sm mt-1">Selamat datang, ${appState.currentUser.name} • SMK Negeri 2 Purwokerto</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Soal Dibuat</h3>
+                            <h4 class="text-4xl font-black text-slate-900 dark:text-white mt-2">${db.questions.length}</h4>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Paket Ujian Aktif</h3>
+                            <h4 class="text-4xl font-black text-slate-900 dark:text-white mt-2">${db.exams.length}</h4>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Koreksi Otomatis</h3>
+                            <h4 class="text-4xl font-black text-emerald-600 mt-2">100%</h4>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderQuestionBank() {
+            const db = getDB();
+            return `
+                <div class="space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Bank Soal Ujian</h2>
+                            <p class="text-sm text-slate-500 mt-1">Kelola daftar butir soal pilihan ganda & kunci jawaban.</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="openAddQuestionModal()" class="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm shadow"><i class="fa-solid fa-plus mr-1"></i> Tambah Soal</button>
+                            <button onclick="showToast('Impor soal Excel berhasil.', 'success')" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow"><i class="fa-solid fa-file-excel mr-1"></i> Impor Excel</button>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        ${db.questions.map((q, idx) => `
+                            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="px-2.5 py-1 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 font-bold text-xs rounded-lg">Soal #${idx + 1} • ${q.subject}</span>
+                                    <span class="text-xs font-mono font-bold text-amber-600 dark:text-amber-400">Bobot: ${q.weight} Point</span>
+                                </div>
+                                <p class="text-slate-900 dark:text-white font-semibold text-base mb-4 leading-relaxed">${q.question}</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-700 dark:text-slate-300 mb-4">
+                                    <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700/50"><span class="font-bold text-brand-600 mr-2">A.</span> ${q.options.A}</div>
+                                    <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700/50"><span class="font-bold text-brand-600 mr-2">B.</span> ${q.options.B}</div>
+                                    <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700/50"><span class="font-bold text-brand-600 mr-2">C.</span> ${q.options.C}</div>
+                                    <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700/50"><span class="font-bold text-brand-600 mr-2">D.</span> ${q.options.D}</div>
+                                </div>
+                                <div class="flex items-center justify-between text-xs pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                                    <span class="text-emerald-600 font-bold"><i class="fa-solid fa-check-circle mr-1"></i> Kunci Jawaban: Option ${q.key}</span>
+                                    <button onclick="deleteQuestion(${q.id})" class="text-rose-500 hover:text-rose-700 font-semibold"><i class="fa-solid fa-trash mr-1"></i> Hapus Soal</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function openAddQuestionModal() {
+            showModal('Tambah Butir Soal Baru', `
+                <form onsubmit="saveNewQuestion(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Mata Pelajaran</label>
+                        <input type="text" id="q-subject" value="Informatika" class="w-full px-4 py-2.5 rounded-xl border dark:bg-slate-900 dark:border-slate-700 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Teks Pertanyaan / Pertanyaan</label>
+                        <textarea id="q-text" rows="3" required class="w-full px-4 py-2.5 rounded-xl border dark:bg-slate-900 dark:border-slate-700 text-sm" placeholder="Tulis butir soal di sini..."></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" id="q-optA" placeholder="Pilihan A" required class="px-3 py-2 rounded-xl border dark:bg-slate-900 dark:border-slate-700 text-sm">
+                        <input type="text" id="q-optB" placeholder="Pilihan B" required class="px-3 py-2 rounded-xl border dark:bg-slate-900 dark:border-slate-700 text-sm">
+                        <input type="text" id="q-optC" placeholder="Pilihan C" required class="px-3 py-2 rounded-xl border dark:bg-slate-900 dark:border-slate-700 text-sm">
+                        <input type="text" id="q-optD" placeholder="Pilihan D" required class="px-3 py-2 rounded-xl border dark:bg-slate-900 dark:border-slate-700 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Kunci Jawaban (A/B/C/D/E)</label>
+                        <input type="text" id="q-key" maxlength="1" required class="w-full px-4 py-2.5 rounded-xl border dark:bg-slate-900 dark:border-slate-700 text-sm font-bold uppercase" placeholder="Contoh: C">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm shadow">Simpan Soal Baru</button>
+                </form>
+            `);
+        }
+
+        function saveNewQuestion(e) {
+            e.preventDefault();
+            const subject = document.getElementById('q-subject').value;
+            const question = document.getElementById('q-text').value;
+            const A = document.getElementById('q-optA').value;
+            const B = document.getElementById('q-optB').value;
+            const C = document.getElementById('q-optC').value;
+            const D = document.getElementById('q-optD').value;
+            const key = document.getElementById('q-key').value.toUpperCase();
+
+            const db = getDB();
+            db.questions.push({ id: Date.now(), subject, class: 'XI TE 1', difficulty: 'Sedang', question, options: { A, B, C, D, E: 'Lainnya' }, key, weight: 5, discussion: 'Pembahasan otomatis sistem CBT.' });
+            saveDB(db);
+            closeModal();
+            showToast('Soal baru berhasil ditambahkan ke Bank Soal!', 'success');
+            render();
+        }
+
+        function deleteQuestion(id) {
+            if (!confirm('Apakah Anda yakin ingin menghapus butir soal ini?')) return;
+            const db = getDB();
+            db.questions = db.questions.filter(q => q.id !== id);
+            saveDB(db);
+            showToast('Butir soal berhasil dihapus.', 'info');
+            render();
+        }
+
+        function renderExamMaker() {
+            return `
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Buat Paket Ujian Uji Coba</h2>
+                        <p class="text-sm text-slate-500 mt-1">Konfigurasi alokasi waktu, acak pilihan jawaban, dan KKM.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderExamResultsTeacher() {
+            return `<div class="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700"><h2 class="text-xl font-bold">Analisis Daya Pembeda & Kesukaran Soal</h2><p class="text-slate-500 mt-2">Daftar analisis butir soal dari hasil pengerjaan siswa.</p></div>`;
+        }
+
+        function renderReportsTeacher() {
+            return `<div class="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700"><h2 class="text-xl font-bold">Cetak Laporan Nilai Mata Pelajaran</h2><p class="text-slate-500 mt-2">Format pencetakan resmi nilai rapor SMK Negeri 2 Purwokerto.</p></div>`;
+        }
+
+        function renderPengawasDashboard() {
+            const db = getDB();
+            return `
+                <div class="space-y-6">
+                    <div class="bg-gradient-to-r from-brand-800 to-brand-900 p-6 rounded-2xl text-white shadow-xl">
+                        <h2 class="text-2xl font-bold">Dashboard Pengawas Ujian</h2>
+                        <p class="text-brand-100 text-sm mt-1">Pantau kecurangan & perpindahan tab browser siswa selama ujian.</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-100 dark:bg-slate-700/50 text-xs uppercase font-bold text-slate-600 dark:text-slate-300">
+                                <tr>
+                                    <th class="p-4">NIS</th>
+                                    <th class="p-4">Nama Siswa</th>
+                                    <th class="p-4">Kelas</th>
+                                    <th class="p-4">Status Ujian</th>
+                                    <th class="p-4">Deteksi Pindah Tab</th>
+                                    <th class="p-4 text-center">Tindakan Pengawas</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+                                ${db.examParticipants.map(p => `
+                                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                                        <td class="p-4 font-mono font-bold text-brand-600">${p.nis}</td>
+                                        <td class="p-4 font-semibold text-slate-900 dark:text-white">${p.name}</td>
+                                        <td class="p-4">${p.class}</td>
+                                        <td class="p-4"><span class="px-2.5 py-1 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 rounded-full text-xs font-bold">${p.status}</span></td>
+                                        <td class="p-4"><span class="px-2.5 py-1 ${p.tabSwitches > 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40'} rounded-full text-xs font-black">${p.tabSwitches} Kali Detected</span></td>
+                                        <td class="p-4 text-center">
+                                            <button onclick="sendWarningToStudent('${p.name}')" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs shadow">Kirim Peringatan</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function sendWarningToStudent(name) {
+            showToast(`Peringatan pelanggaran dikirimkan langsung ke layar ${name}`, 'error');
+        }
+
+        function renderViolationLogs() {
+            return `<div class="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700"><h2 class="text-xl font-bold">Catatan Waktu Detail Perpindahan Tab</h2><p class="text-slate-500 mt-2">Daftar stamp waktu saat siswa terdeteksi berpindah ke tab atau aplikasi lain.</p></div>`;
+        }
+
+        function renderSiswaDashboard() {
+            const db = getDB();
+            return `
+                <div class="space-y-6">
+                    <div class="bg-gradient-to-r from-brand-800 via-brand-700 to-brand-900 p-6 rounded-2xl text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold">Selamat Datang, ${appState.currentUser.name}</h2>
+                            <p class="text-brand-100 text-xs md:text-sm mt-1">NIS: ${appState.currentUser.nis || '20261001'} • Kelas: ${appState.currentUser.class || 'XI TE 1'} • SMK Negeri 2 Purwokerto</p>
+                        </div>
+                        <div class="bg-white/10 px-4 py-2.5 rounded-xl backdrop-blur border border-white/10 text-right">
+                            <p class="text-[10px] uppercase font-bold text-brand-200">Status Akun</p>
+                            <p class="font-extrabold text-accent-400">Siap Ujian</p>
+                        </div>
+                    </div>
+
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Daftar Jadwal Ujian Aktif Hari Ini</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        ${db.exams.map(e => `
+                            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                                <div>
+                                    <span class="px-2.5 py-1 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 font-bold text-xs rounded-lg">${e.subject}</span>
+                                    <h4 class="text-lg font-bold text-slate-900 dark:text-white mt-2">${e.title}</h4>
+                                    <p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-clock mr-1"></i> Durasi: ${e.duration} Menit • ${e.totalQuestions} Soal Pilihan Ganda</p>
+                                </div>
+                                <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
+                                    <span class="text-xs font-bold text-emerald-600"><i class="fa-solid fa-circle-check mr-1"></i> Terverifikasi</span>
+                                    <button onclick="startExam(${e.id})" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm shadow-md transition">Mulai Kerjakan Ujian</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSiswaHistory() {
+            return `
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Riwayat Pengerjaan & Hasil Nilai</h2>
+                        <p class="text-sm text-slate-500 mt-1">Daftar ujian yang telah diselesaikan.</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-slate-900 dark:text-white">Ujian Tengah Semester Gasal - Informatika</h4>
+                            <p class="text-xs text-slate-500 mt-1">Selesai • 15 Okt 2026</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-3xl font-black text-emerald-600">100</span>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase">Tuntas KKM</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        let currentExamSession = {
+            examId: null,
+            questions: [],
+            currentIndex: 0,
+            answers: {},
+            flagged: {},
+            remainingSeconds: 7200,
+            timerInterval: null
+        };
+
+        function startExam(examId) {
+            const tokenInput = prompt("Masukkan Token Ujian (Token aktif: TEI2026):");
+            const db = getDB();
+            const exam = db.exams.find(e => e.id === examId);
+            
+            if (!tokenInput || tokenInput.toUpperCase() !== exam.token.toUpperCase()) {
+                showToast('Token ujian tidak valid! Hubungi pengawas ruangan.', 'error');
+                return;
+            }
+
+            currentExamSession.examId = examId;
+            currentExamSession.questions = db.questions;
+            currentExamSession.currentIndex = 0;
+            currentExamSession.answers = {};
+            currentExamSession.flagged = {};
+            currentExamSession.remainingSeconds = exam.duration * 60;
+
+            appState.currentView = 'exam_room';
+            render();
+
+            if (currentExamSession.timerInterval) clearInterval(currentExamSession.timerInterval);
+            currentExamSession.timerInterval = setInterval(() => {
+                if (currentExamSession.remainingSeconds > 0) {
+                    currentExamSession.remainingSeconds--;
+                    const timerEl = document.getElementById('exam-timer');
+                    if (timerEl) {
+                        const m = Math.floor(currentExamSession.remainingSeconds / 60);
+                        const s = currentExamSession.remainingSeconds % 60;
+                        timerEl.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                    }
+                } else {
+                    clearInterval(currentExamSession.timerInterval);
+                    submitExam(true);
+                }
+            }, 1000);
+        }
+
+        function renderExamRoomScreen() {
+            const q = currentExamSession.questions[currentExamSession.currentIndex];
+            const totalQ = currentExamSession.questions.length;
+            const m = Math.floor(currentExamSession.remainingSeconds / 60);
+            const s = currentExamSession.remainingSeconds % 60;
+
+            return `
+                <div class="flex-1 flex flex-col h-screen bg-slate-900 text-white overflow-hidden">
+                    <!-- Exam Header Bar -->
+                    <header class="h-16 bg-slate-950 border-b border-slate-800 px-6 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center font-black">SMK</div>
+                            <div>
+                                <h1 class="text-xs md:text-sm font-bold uppercase tracking-wide">CBT SMART EXAM • SMK NEGERI 2 PURWOKERTO</h1>
+                                <p class="text-xs text-slate-400">Peserta: ${appState.currentUser.name} (${appState.currentUser.class || 'XI TE 1'})</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="px-4 py-1.5 bg-brand-900/60 border border-brand-500/50 rounded-xl text-center">
+                                <p class="text-[9px] text-brand-300 font-bold uppercase tracking-wider">Sisa Waktu Ujian</p>
+                                <p id="exam-timer" class="font-mono font-bold text-accent-400 text-base md:text-lg">${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}</p>
+                            </div>
+                        </div>
+                    </header>
+
+                    <!-- Main Exam Workspace -->
+                    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+                        <!-- Questions Panel -->
+                        <div class="flex-1 p-6 overflow-y-auto custom-scrollbar flex flex-col justify-between">
+                            <div class="max-w-3xl mx-auto w-full space-y-6">
+                                <div class="flex justify-between items-center bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
+                                    <span class="font-bold text-brand-400 text-sm">Soal Nomor ${currentExamSession.currentIndex + 1} dari ${totalQ}</span>
+                                    <button onclick="toggleFlagCurrent()" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${currentExamSession.flagged[currentExamSession.currentIndex] ? 'bg-amber-500 text-slate-950' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}">
+                                        <i class="fa-solid fa-flag mr-1"></i> ${currentExamSession.flagged[currentExamSession.currentIndex] ? 'Ditandai Ragu-ragu' : 'Tandai Ragu-ragu'}
+                                    </button>
+                                </div>
+
+                                <div class="bg-slate-800/90 p-6 rounded-2xl border border-slate-700 shadow-md">
+                                    <p class="text-base md:text-lg font-medium leading-relaxed">${q.question}</p>
+                                </div>
+
+                                <div class="space-y-3">
+                                    ${['A', 'B', 'C', 'D', 'E'].map(optKey => {
+                                        const optText = q.options[optKey];
+                                        if (!optText) return '';
+                                        const isSelected = currentExamSession.answers[currentExamSession.currentIndex] === optKey;
+                                        return `
+                                            <label onclick="selectAnswer('${optKey}')" class="flex items-center gap-4 p-4 rounded-2xl border cursor-pointer transition ${isSelected ? 'bg-brand-600/30 border-brand-500 text-white' : 'bg-slate-800/60 border-slate-700/80 text-slate-200 hover:bg-slate-800'}">
+                                                <span class="w-8 h-8 rounded-xl ${isSelected ? 'bg-brand-600 text-white' : 'bg-slate-700 text-slate-300'} font-bold flex items-center justify-center shrink-0 text-sm">${optKey}</span>
+                                                <span class="flex-1 font-medium text-sm md:text-base">${optText}</span>
+                                            </label>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Buttons Bar -->
+                            <div class="max-w-3xl mx-auto w-full flex justify-between pt-6 border-t border-slate-800 mt-6">
+                                <button onclick="prevQuestion()" ${currentExamSession.currentIndex === 0 ? 'disabled' : ''} class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 rounded-xl font-bold text-sm transition">Sebelumnya</button>
+                                <button onclick="nextQuestion()" ${currentExamSession.currentIndex === totalQ - 1 ? 'disabled' : ''} class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 rounded-xl font-bold text-sm transition">Berikutnya</button>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar Grid Navigator -->
+                        <div class="w-full md:w-80 bg-slate-950 p-6 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col justify-between">
+                            <div>
+                                <h3 class="font-bold text-xs text-slate-400 uppercase tracking-wider mb-4">Navigasi Nomor Soal</h3>
+                                <div class="grid grid-cols-5 gap-2">
+                                    ${currentExamSession.questions.map((_, idx) => {
+                                        const answered = currentExamSession.answers[idx] !== undefined;
+                                        const flagged = currentExamSession.flagged[idx];
+                                        const active = currentExamSession.currentIndex === idx;
+                                        
+                                        let bg = 'bg-slate-800 text-slate-300';
+                                        if (flagged) bg = 'bg-amber-500 text-slate-950 font-bold';
+                                        else if (answered) bg = 'bg-emerald-600 text-white font-bold';
+
+                                        return `
+                                            <button onclick="jumpToQuestion(${idx})" class="h-10 rounded-xl font-mono text-sm font-bold flex items-center justify-center border ${active ? 'border-accent-400 ring-2 ring-accent-400/50' : 'border-transparent'} ${bg}">
+                                                ${idx + 1}
+                                            </button>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                            <div class="mt-6 pt-6 border-t border-slate-800">
+                                <button onclick="confirmSubmitExam()" class="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-600/30 transition text-sm">SELESAI UJIAN</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function selectAnswer(optKey) {
+            currentExamSession.answers[currentExamSession.currentIndex] = optKey;
+            render();
+        }
+
+        function toggleFlagCurrent() {
+            currentExamSession.flagged[currentExamSession.currentIndex] = !currentExamSession.flagged[currentExamSession.currentIndex];
+            render();
+        }
+
+        function nextQuestion() {
+            if (currentExamSession.currentIndex < currentExamSession.questions.length - 1) {
+                currentExamSession.currentIndex++;
+                render();
+            }
+        }
+
+        function prevQuestion() {
+            if (currentExamSession.currentIndex > 0) {
+                currentExamSession.currentIndex--;
+                render();
+            }
+        }
+
+        function jumpToQuestion(idx) {
+            currentExamSession.currentIndex = idx;
+            render();
+        }
+
+        function confirmSubmitExam() {
+            if (confirm("Apakah Anda yakin ingin mengirim seluruh jawaban dan menyelesaikan ujian?")) {
+                submitExam(false);
+            }
+        }
+
+        function submitExam(isAuto = false) {
+            if (currentExamSession.timerInterval) clearInterval(currentExamSession.timerInterval);
+            appState.currentView = 'siswa';
+            showToast(isAuto ? 'Waktu pengerjaan habis! Jawaban Anda otomatis tersimpan.' : 'Jawaban ujian berhasil dikirimkan ke server.', 'success');
+            render();
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bg = type === 'success' ? 'bg-emerald-600 text-white' : type === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-white';
+            toast.className = `px-5 py-3 rounded-xl shadow-xl font-semibold text-xs md:text-sm flex items-center gap-3 transition-all ${bg}`;
+            toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info'}"></i> ${message}`;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 3500);
+        }
+
+        function showModal(title, htmlContent) {
+            const container = document.getElementById('modal-container');
+            container.innerHTML = `
+                <div class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <div class="px-6 py-4 bg-brand-600 text-white flex justify-between items-center">
+                            <h3 class="font-bold text-base">${title}</h3>
+                            <button onclick="closeModal()" class="text-white hover:text-brand-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+                        </div>
+                        <div class="p-6">${htmlContent}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function closeModal() {
+            document.getElementById('modal-container').innerHTML = '';
+        }
+
+        function toggleDarkMode() {
+            appState.darkMode = !appState.darkMode;
+            render();
+        }
+
+        function toggleSidebar() {
+            appState.sidebarOpen = !appState.sidebarOpen;
+            render();
+        }
+
+        function bindDashboardEvents() {
+            if (appState.currentView === 'admin') {
+                const ctx = document.getElementById('adminChart');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['XI TE 1', 'XI TE 2', 'XII TKJ 1', 'X TE 1'],
+                            datasets: [{
+                                label: 'Rata-rata Nilai CBT',
+                                data: [88, 85, 92, 84],
+                                backgroundColor: '#2563eb',
+                                borderRadius: 8
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                }
+            }
+        }
+
+        window.onload = function() {
+            render();
+        };
+    </script>
+</body>
+</html>
